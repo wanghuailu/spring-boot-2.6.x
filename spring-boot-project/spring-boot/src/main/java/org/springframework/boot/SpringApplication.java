@@ -266,10 +266,18 @@ public class SpringApplication {
 		// 推断应用类型，默认类型 WebApplicationType.SERVLET
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
 
+		// 将 spring.factories 文件中的 org.springframework.context.ApplicationContextInitializer 指定的初始化类全路径 设置给 this.bootstrapRegistryInitializers
+		// 默认不存在
 		this.bootstrapRegistryInitializers = new ArrayList<>(
 				getSpringFactoriesInstances(BootstrapRegistryInitializer.class));
+
+		// 将 spring.factories 文件中的 org.springframework.context.ApplicationContextInitializer 指定的初始化类全路径 设置给 this.initializers
+		// 默认是 7个
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
+		// 将 spring.factories 文件中的 org.springframework.context.ApplicationListener 指定的监听器全路径 设置给 this.listeners
+		// 默认是8个
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+		// 这里是找到main方法所在的类，一般来说，main方法类和primarySources是同一个
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
@@ -296,9 +304,12 @@ public class SpringApplication {
 	 */
 	public ConfigurableApplicationContext run(String... args) {
 		long startTime = System.nanoTime();
+		// 创建一个默认的上下文环境，继承 ConfigurableBootstrapContext
 		DefaultBootstrapContext bootstrapContext = createBootstrapContext();
+		// 可配置的应用程序上下文
 		ConfigurableApplicationContext context = null;
 		configureHeadlessProperty();
+		// 创建应用启动的监听器，默认只有一个 EventPublishingRunListener
 		SpringApplicationRunListeners listeners = getRunListeners(args);
 		listeners.starting(bootstrapContext, this.mainApplicationClass);
 		try {
@@ -306,6 +317,7 @@ public class SpringApplication {
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, bootstrapContext, applicationArguments);
 			configureIgnoreBeanInfo(environment);
 			Banner printedBanner = printBanner(environment);
+			// org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext
 			context = createApplicationContext();
 			context.setApplicationStartup(this.applicationStartup);
 			prepareContext(bootstrapContext, context, environment, listeners, applicationArguments, printedBanner);
@@ -335,13 +347,14 @@ public class SpringApplication {
 
 	private DefaultBootstrapContext createBootstrapContext() {
 		DefaultBootstrapContext bootstrapContext = new DefaultBootstrapContext();
+		// this.bootstrapRegistryInitializers 在 new SpringApplication 构造器里面设置过，默认是空集合
 		this.bootstrapRegistryInitializers.forEach((initializer) -> initializer.initialize(bootstrapContext));
 		return bootstrapContext;
 	}
 
 	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners,
 			DefaultBootstrapContext bootstrapContext, ApplicationArguments applicationArguments) {
-		// Create and configure the environment
+		// Create and configure the environment   ApplicationServletEnvironment
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
 		ConfigurationPropertySources.attach(environment);
